@@ -1,0 +1,121 @@
+<link rel="import" href="../../bower_components/taaabs-themes/taaabs-theme.html">
+<link rel="import" href="../../bower_components/app-localize-behavior/app-localize-behavior.html">
+<link rel="import" href="../../bower_components/google-chart/google-chart.html">
+
+<dom-module id="taaabs-trace-histogram-lite">
+  <template>
+    <style include="taaabs-theme"></style>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <div id="chart-container" style="border: solid 1px black; height: 300px;">
+      <google-chart type='column' id="chart" options='{{chartOptions}}' style="width:100%">
+      </google-chart>
+    </div>
+
+    <!-- Notify toast -->
+    <paper-toast class="fit-bottom" id="__notify_toast__" style="background-color:rgba(0,0,0,0.37)" duration=0> </paper-toast>
+  </template>
+  <script>
+    Polymer({
+      is: 'taaabs-trace-histogram-lite',
+
+      properties: {
+        /**
+         * The parent `taaabs-trace-histogram`
+         *
+         * @attribute parentComponent
+         * @type Object
+         */
+        parentComponent: {
+          type: Object,
+          notify: true,
+          value: null,
+          observer: '_onParentComponentChange'
+        },
+
+        /**
+         * The options of the chart.
+         *
+         * @attribute chartOptions
+         * @type Object
+         */
+        chartOptions: {
+          type: Object,
+          notify: true,
+          value: function() {
+            return {
+              "isStacked": true,
+              "animation": {
+                "duration": 500,
+                "easing": "inAndOut"
+              },
+              "focusTarget": "category",
+              "legend": {
+                "position": "right"
+              }
+            };
+          }
+        },
+      },
+
+      behaviors: [
+        Polymer.AppLocalizeBehavior,
+        NotifyToastBehavior
+      ],
+
+      attached: function() {},
+
+      ready: function() {},
+
+      setData: function(data){
+        this.$.chart.set('data', data);
+      },
+
+      setMaxValue: function(val){
+        if(this.chartOptions.vAxis){
+          this.chartOptions.vAxis.maxValue = val;
+        }
+        else{
+          this.chartOptions.vAxis = {'maxValue': val};
+        }
+      },
+
+      setSeriesColor: function(colors){
+        this.chartOptions.series = colors;
+      },
+
+      setTitle: function(title){
+        this.chartOptions.title = title;
+      },
+
+      resetChart: function(){
+        this.chartOptions = {
+          "isStacked": true,
+          "animation": {
+            "duration": 500,
+            "easing": "inAndOut"
+          },
+          "focusTarget": "category",
+          "legend": {
+            "position": "right"
+          }
+        };
+        this.$.chart.set('data', [["Interval","No-Data"],["",0]]);
+        this.$.chart.redraw();
+      },
+
+      /**
+       * Reset every property to match them to the parent `trace-histogram`.
+       *
+       * @method _onParentComponentChange
+       */
+      _onParentComponentChange: function() {
+        // TODO
+      }
+    });
+  </script>
+</dom-module>

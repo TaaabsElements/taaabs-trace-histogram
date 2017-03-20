@@ -1,0 +1,40 @@
+{
+  "name": "taaabs-trace-histogram",
+  "version": "1.0.0",
+  "description": "Graphical element that displays an histogram showing the obsel count over time intervals.",
+  "keywords": [
+    "web-components",
+    "polymer",
+    "taaabs"
+  ],
+  "authors": [
+    "Rémi Casado"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TaaabsElements/taaabs-trace-histogram.git"
+  },
+  "main": "taaabs-trace-histogram.html",
+  "license": "https://github.com/TaaabsElements/taaabs-trace-histogram/LICENSE",
+  "dependencies": {
+    "polymer": "polymer/polymer",
+    "paper-button": "PolymerElements/paper-button",
+    "paper-listbox": "PolymerElements/paper-listbox",
+    "paper-dropdown-menu": "PolymerElements/paper-dropdown-menu",
+    "paper-item": "PolymerElements/paper-item",
+    "paper-input": "PolymerElements/paper-input",
+    "paper-checkbox": "PolymerElements/paper-checkbox",
+    "paper-spinner": "PolymerElements/paper-spinner",
+    "google-chart": "GoogleWebComponents/google-chart",
+    "app-localize-behavior": "PolymerElements/app-localize-behavior",
+    "taaabs-themes": "TaaabsElements/taaabs-themes",
+    "taaabs-time-utilities": "TaaabsElements/taaabs-time-utilities",
+    "taaabs-trace-histogram": "TaaabsElements/taaabs-trace-histogram",
+    "notify-toast-behavior": "Yepikae/notify-toast-behavior"
+  },
+  "devDependencies": {
+    "iron-component-page": "polymerelements/iron-component-page#^1.0.0",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0"
+  },
+  "ignore": []
+}
