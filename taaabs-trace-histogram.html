@@ -386,7 +386,7 @@
         _periodIndex: {
           type: Number,
           notify: true,
-          value: null,
+          value: -1,
           observer: '_onPeriodIndexChange'
         },
 
@@ -678,7 +678,7 @@
        * @method _onPeriodIndexChange
        */
       _onPeriodIndexChange: function(evt) {
-        if (evt !== null && this._periodMapping[evt] === 'custom-period') this.$.customPeriodInput.disabled = false;
+        if (evt !== -1 && this._periodMapping[evt] === 'custom-period') this.$.customPeriodInput.disabled = false;
         else this.$.customPeriodInput.disabled = true;
       },
 
