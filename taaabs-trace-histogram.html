@@ -183,7 +183,7 @@
   </div>
   </div>
   <div id="chart-container" style="border: solid 1px black; height: 300px;">
-    <google-chart type='column' id="chart" options='{{chartOptions}}' style="width:100%" on-google-chart-select="_test">
+    <google-chart type='column' id="chart" options='{{chartOptions}}' style="width:100%" on-google-chart-select="_onChartClick">
     </google-chart>
     <div id="spinnerContainer">
       <paper-spinner id="spinner" active></paper-spinner>
@@ -195,14 +195,6 @@
   </div>
   </div>
 
-  <paper-dialog id="explore-confirm-dialog">
-    <p> Explore the trace from[[_exploreInterval]] </p>
-    <div class="buttons">
-      <paper-button dialog-dismiss>Cancel</paper-button>
-      <paper-button dialog-confirm autofocus on-click="_onConfirmIntervalZoom">Accept</paper-button>
-    </div>
-  </paper-dialog>
-
   <!-- Notify toast -->
   <paper-toast class="fit-bottom" id="__notify_toast__" style="background-color:rgba(0,0,0,0.37)" duration=0> </paper-toast>
 
@@ -211,7 +203,7 @@
     Polymer({
 
       /**
-       * Fired when the taaabs-trace-historgram send a sparql-query.
+       * Fired when the taaabs-trace-histogram send a sparql-query.
        *
        * @event loading-sparql-query
        */
@@ -267,6 +259,8 @@
           notify: true,
           value: []
         },
+
+
 
         /**
          * List of the obsel attributes of the trace.
@@ -501,15 +495,7 @@
       attached: function() {
         // Load i18n json.
         this.loadResources(this.resolveUrl('./languages/locales.json'));
-        this.$['explore-confirm-dialog'].set('fitInto', this.$['chart-container']);
       },
-
-      // _test: function(e) {
-      //   var row = this.$.chart.selection[0].row + 1;
-      //   this.set('_exploreInterval', this.$.chart.data[row][0]);
-      //   this.$['explore-confirm-dialog'].open();
-      //   this.$['chart-container'].style.opacity = '0.37';
-      // },
 
       /** ----------------------------------------------------------------------
       // MARK: Functions : Chart
@@ -541,41 +527,40 @@
         this._createBreadcrumb(begin, end);
       },
 
-      _test: function(e) {
-        if(this.$.chart.selection[0]){
-          var row = this.$.chart.selection[0].row + 1;
-          this._ttu.resetIntervalRepeater();
-          var i = 0;
-          var result = null;
-          while (i < row) {
-            result = this._ttu.getNextIntervalUTC();
-            i++;
-          }
-          this.$['chart-container'].style.opacity = '1';
-          this.set('_periodIndex', this._periodIndex - 1);
-          this.setBounds(result.begin.valueOf(), result.end.valueOf());
-          this._initLoadingStatus();
-          this._setChart();
-        }
-      },
+      /** ----------------------------------------------------------------------
+      // MARK: Functions: Breadcrumbs
+      **/
 
+      /**
+       * Create the breadcrumbs.
+       *
+       * @param {!required} begin {Date} Begin date of the breadcrumb.
+       * @param {!required} end {Date} End date of the breadcrumb.
+       *
+       * @method _createBreadcrumb
+       */
       _createBreadcrumb: function(begin, end) {
+        // Create the DOM elements
         var bc = document.createElement('li');
         var bcd = document.createElement('div');
+        // Fill the div with the human-readable date
         bcd.innerHTML = this._ttu.get_european_condensed_date(new Date(begin)) + '<br/>' + this._ttu.get_european_condensed_date(new Date(end));
         bc.appendChild(bcd);
+        // Save the period index for rollback with the breadcrumb.
         var pi = JSON.parse(JSON.stringify(this._periodIndex));
         if (pi !== null) pi = pi + 1;
         this.push('_breadcrumbPeriodIndex', pi);
+        // Add event on click : calls `_fallBackTo`
         bc.addEventListener('click', function(evt) {
           var elem = evt.target;
           this._fallBackTo(begin, end, elem);
         }.bind(this));
+        // Add the breadcrumb.
         this.$['breadcrumbs-container'].appendChild(bc);
       },
 
       /**
-       * .
+       * Query the trace to set the histogram on the date and period of the selected breadcumb.
        *
        * @param {!required} begin {Number} The begin time.
        * @param {!required} end {Number} The end time.
@@ -584,11 +569,13 @@
        * @method _fallBackTo
        */
       _fallBackTo: function(begin, end, elem) {
+        // Set the begin and end time
         this.set('begin', begin);
         this.set('end', end);
+        // Get the breadcrumb element (click event can occur en li or span)
         if (elem.tagName === "div" || elem.tagName === "DIV")
           elem = elem.parentNode;
-
+        // Retrieve the period of the breadcrumb
         var period = null;
         var index = this._breadcrumbPeriodIndex.length - 1;
         while (this.$['breadcrumbs-container'].lastChild && this.$['breadcrumbs-container'].lastChild !== elem) {
@@ -598,6 +585,7 @@
             index--;
           }
         }
+        // If the period exists, we can set the histogram with the new query.
         if (period) {
           this.set('_periodIndex', period);
           this._initLoadingStatus();
@@ -694,6 +682,32 @@
         else this.$.customPeriodInput.disabled = true;
       },
 
+      /**
+       * Event launch when the user clicks on the chart.
+       * Reload the histogram with a shorter timespan.
+       *
+       * @param {!required} e {Event} The event object.
+       *
+       * @method _onChartClick
+       */
+      _onChartClick: function(e) {
+        if (this.$.chart.selection[0]) {
+          var row = this.$.chart.selection[0].row + 1;
+          this._ttu.resetIntervalRepeater();
+          var i = 0;
+          var result = null;
+          while (i < row) {
+            result = this._ttu.getNextIntervalUTC();
+            i++;
+          }
+          this.$['chart-container'].style.opacity = '1';
+          this.set('_periodIndex', this._periodIndex - 1);
+          this.setBounds(result.begin.valueOf(), result.end.valueOf());
+          this._initLoadingStatus();
+          this._setChart();
+        }
+      },
+
       /** ----------------------------------------------------------------------
       // MARK: Functions : Loading
       **/
@@ -714,7 +728,7 @@
         this.fire('loading-sparql-query');
       },
 
-      _endLoadingStatus: function(){
+      _endLoadingStatus: function() {
         // Display the spinner
         this.$.spinner.active = false;
         this.$.spinnerContainer.style.display = 'none';
@@ -804,59 +818,62 @@
       _processRequestResults: function(rd) {
         // If the `taaabs-trace-histogram` is a simple histogram, we just fill the chart.
         // Otherwise, we fill each offspring
-        if(this.offsprings.length > 0){
+        if (this.offsprings.length > 0) {
           this._processRequestResultsForOffsprings(rd);
           this.$.chart.set('data', this._orderStackedDatas(this._getSumOffspringsDatas()));
           this._setColors();
           this._setChartsTitle();
           this._fillCharts();
-        }
-        else{
+        } else {
           this._fillChart(this._orderStackedDatas(this._getStackedData(rd)));
         }
         this._endLoadingStatus();
       },
 
-      _getSumOffspringsDatas: function(){
-        var sd = [['interval']];
+      _getSumOffspringsDatas: function() {
+        var sd = [
+          ['interval']
+        ];
         var od = this._offspringsDatas;
         var i, j, k, l, exists;
         var s = 0;
-        while(od[s] === null || od[s] === undefined){
+        while (od[s] === null || od[s] === undefined) {
           s++;
         }
-        for(j = 1; j < od[s][0].length; j++){
+        for (j = 1; j < od[s][0].length; j++) {
           sd[0].push(od[s][0][j]);
         }
-        for(j = 1; j < od[s].length; j++){
+        for (j = 1; j < od[s].length; j++) {
           sd.push([od[s][j][0]]);
-          for(k = 1; k < od[s][j].length; k++){
+          for (k = 1; k < od[s][j].length; k++) {
             sd[j].push((od[s][j][k] === null) ? 0 : od[s][j][k]);
           }
         }
-        for(i = s + 1; i < od.length; i++){
-          // Check the titles
-          var map = [null];
-          for(j = 1; j < od[i][0].length; j++){
-            exists = false;
-            for(k = 0; k < sd[0].length; k++){
-              if(sd[0][k] === od[i][0][j]){
-                exists = true;
-                map.push(k);
-                break;
+        for (i = s + 1; i < od.length; i++) {
+          if(od[i] !== null && od[i] !== undefined){
+            // Check the titles
+            var map = [null];
+            for (j = 1; j < od[i][0].length; j++) {
+              exists = false;
+              for (k = 0; k < sd[0].length; k++) {
+                if (sd[0][k] === od[i][0][j]) {
+                  exists = true;
+                  map.push(k);
+                  break;
+                }
+              }
+              if (!exists) {
+                sd[0].push(od[i][0][j]);
+                for (l = 1; l < sd.length; l++) {
+                  sd[l].push(0);
+                }
+                map.push(sd[0].length - 1);
               }
             }
-            if(!exists){
-              sd[0].push(od[i][0][j]);
-              for(l = 1; l < sd.length; l++){
-                sd[l].push(0);
+            for (j = 1; j < od[i].length; j++) {
+              for (k = 1; k < od[i][j].length; k++) {
+                sd[j][map[k]] = sd[j][map[k]] + ((od[i][j][k] === null) ? 0 : od[i][j][k]);
               }
-              map.push(sd[0].length - 1);
-            }
-          }
-          for(j = 1; j < od[i].length; j++){
-            for(k = 1; k < od[i][j].length; k++){
-              sd[j][map[k]] = sd[j][map[k]] + ((od[i][j][k] === null) ? 0 : od[i][j][k]);
             }
           }
         }
@@ -909,10 +926,9 @@
 
       _fillCharts: function() {
         for (var i = 0; i < this.offsprings.length; i++) {
-          if(this._offspringsDatas[i] === null || this._offspringsDatas[i] === undefined){
+          if (this._offspringsDatas[i] === null || this._offspringsDatas[i] === undefined) {
             this.offsprings[i][1].resetChart();
-          }
-          else{
+          } else {
             this.offsprings[i][1].setData(this._offspringsDatas[i]);
             this.offsprings[i][1].setMaxValue(this._maxValue);
           }
@@ -921,16 +937,17 @@
         this.setMaxValue(this._maxValue);
       },
 
-      setMaxValue: function(val){
-        if(this.chartOptions.vAxis){
+      setMaxValue: function(val) {
+        if (this.chartOptions.vAxis) {
           this.chartOptions.vAxis.maxValue = val;
-        }
-        else{
-          this.chartOptions.vAxis = {'maxValue': val};
+        } else {
+          this.chartOptions.vAxis = {
+            'maxValue': val
+          };
         }
       },
 
-      setSeriesColor: function(colors){
+      setSeriesColor: function(colors) {
         this.chartOptions.series = colors;
       },
 
@@ -946,7 +963,7 @@
         var d, s, i, j, color_index;
         for (i = 0; i < this._offspringsDatas.length; i++) {
           d = this._offspringsDatas[i];
-          if(d){
+          if (d) {
             s = [];
             for (j = 1; j < d[0].length; j++) {
               if (this._colorsMap[d[0][j]]) {
@@ -1116,9 +1133,9 @@
       // MARK: Functions: Chart settings
       **/
 
-      _setChartsTitle: function(){
-        for(var i = 0 ; i < this.offsprings.length; i++){
-          if(this._offspringsDatas[i]) this._setChartTitle(i);
+      _setChartsTitle: function() {
+        for (var i = 0; i < this.offsprings.length; i++) {
+          if (this._offspringsDatas[i]) this._setChartTitle(i);
         }
         this._setChartTitle(null);
       },
@@ -1126,18 +1143,17 @@
       _setChartTitle: function(i) {
         var p = this._periodMapping[this._periodIndex];
         var t = (this._groupByIndex === 0 || this._groupByIndex === -1) ? "obsel type" : this._attributesList[this._groupByIndex - 1];
-        var title = "Obsels distribution per "+p+" & per "+t;
-        if(i !== null && i !== undefined){
-          title += " & "+this.constraint+" = "+this.offsprings[i][0];
+        var title = "Obsels distribution per " + p + " & per " + t;
+        if (i !== null && i !== undefined) {
+          title += " & " + this.constraint + " = " + this.offsprings[i][0];
           this.offsprings[i][1].setTitle(title);
-        }
-        else{
+        } else {
           this.setTitle(title);
         }
 
       },
 
-      setTitle: function(title){
+      setTitle: function(title) {
         this.chartOptions.title = title;
       }
 
