@@ -173,6 +173,7 @@
   </div>
   <div class="chartSettingsDiv flex-reversed flexchild" style="padding-top: 34px">
     <div>
+      <paper-checkbox id="durationCheck"  on-click="_onDurationClick"  noink title="[[localize('duration-title')]]">{{localize('duration')}}</paper-checkbox>
       <paper-checkbox id="normalizeCheck" on-click="_onNormalizeClick" noink>{{localize('normalize')}}</paper-checkbox>
     </div>
   </div>
@@ -182,8 +183,8 @@
     </div>
   </div>
   </div>
-  <div id="chart-container" style="border: solid 1px black; height: 300px;">
-    <google-chart type='column' id="chart" options='{{chartOptions}}' style="width:100%" on-google-chart-select="_onChartClick">
+  <div id="chart-container" style="border: solid 1px black; height: 500px;">
+    <google-chart type='column' id="chart" options='{{chartOptions}}' style="width:100%; height: 100%" on-google-chart-select="_onChartClick">
     </google-chart>
     <div id="spinnerContainer">
       <paper-spinner id="spinner" active></paper-spinner>
@@ -211,6 +212,9 @@
       is: 'taaabs-trace-histogram',
 
       properties: {
+
+        /** ================================================================ **/
+        /**  PUBLIC PROPERTIES                                               **/
 
         /**
          * The trace object.
@@ -260,7 +264,61 @@
           value: []
         },
 
+        /**
+         * The options of the chart.
+         *
+         * @attribute chartOptions
+         * @type Object
+         */
+        chartOptions: {
+          type: Object,
+          notify: true,
+          value: function() {
+            return {
+              "isStacked": true,
+              "focusTarget": "category",
+              "animation": {
+                "duration": 500,
+                "easing": "inAndOut"
+              },
+              "legend": {
+                "position": "right"
+              }
+            };
+          }
+        },
 
+        //
+        // "vAxis": {
+        //    "ticks": [{v:0, f:"0:00.0"}, {v:2500000, f:"0:42.0"}, {v:5000000, f:"1:38:0"}]
+        //  }
+
+        /**
+         * True if the taaabs-trace-histogram is loading a sparql query. False otherwise.
+         *
+         * @attribute isLoading
+         * @type Boolean
+         */
+        isLoading: {
+          type: Boolean,
+          notify: true,
+          value: false
+        },
+
+        /**
+         * List of the offsprings of the `trace-histogram`.
+         *
+         * @attribute offsprings
+         * @type Array
+         */
+        offsprings: {
+          type: Array,
+          notify: true,
+          value: []
+        },
+
+        /** ================================================================ **/
+        /**  PRIVATE PROPERTIES                                              **/
 
         /**
          * List of the obsel attributes of the trace.
@@ -288,50 +346,6 @@
           }
         },
 
-        /** --------------------------------------------------------------------
-        // MARK: Properties : chart
-        **/
-
-        /**
-         * The options of the chart.
-         *
-         * @attribute chartOptions
-         * @type Object
-         */
-        chartOptions: {
-          type: Object,
-          notify: true,
-          value: function() {
-            return {
-              "isStacked": true,
-              "animation": {
-                "duration": 500,
-                "easing": "inAndOut"
-              },
-              "focusTarget": "category",
-              "legend": {
-                "position": "right"
-              }
-            };
-          }
-        },
-
-        /** --------------------------------------------------------------------
-        // MARK: Properties : sparql query
-        **/
-
-        /**
-         * True if the taaabs-trace-histogram is loading a sparql query. False otherwise.
-         *
-         * @attribute isLoading
-         * @type Boolean
-         */
-        isLoading: {
-          type: Boolean,
-          notify: true,
-          value: false
-        },
-
         /**
          * The raw datas of the sparql query.
          *
@@ -355,10 +369,6 @@
           notify: true,
           value: 0
         },
-
-        /** --------------------------------------------------------------------
-        // MARK: Properties : chart settings
-        **/
 
         _colors: {
           type: Array,
@@ -442,37 +452,29 @@
           value: []
         },
 
-        /** --------------------------------------------------------------------
-        // MARK: Properties: Offsprings
-        **/
-
         /**
-         * List of the offsprings of the `trace-histogram`.
+         * Maximum value of a serie.
          *
-         * @attribute offsprings
-         * @type Array
+         * @attribute _maxValue
+         * @type Number
          */
-        offsprings: {
-          type: Array,
-          notify: true,
-          value: []
-        },
-
         _maxValue: {
           type: Number,
           notify: true,
           value: Number.NEGATIVE_INFINITY
         },
 
+        /**
+         * Offsprings series.
+         *
+         * @attribute _offspringsDatas
+         * @type Array
+         */
         _offspringsDatas: {
           type: Array,
           notify: true,
           value: []
         },
-
-        /** --------------------------------------------------------------------
-        // MARK: Properties : i18n
-        **/
 
         /**
          * Localization.
@@ -492,14 +494,18 @@
         NotifyToastBehavior
       ],
 
+      /** ================================================================== **/
+      /**  INITIALIZATION                                                    **/
+
+      /**
+       *
+       *
+       @method attached
+       **/
       attached: function() {
         // Load i18n json.
         this.loadResources(this.resolveUrl('./languages/locales.json'));
       },
-
-      /** ----------------------------------------------------------------------
-      // MARK: Functions : Chart
-      **/
 
       /**
        * Set `_attributeList` and fill the select.
@@ -527,9 +533,8 @@
         this._createBreadcrumb(begin, end);
       },
 
-      /** ----------------------------------------------------------------------
-      // MARK: Functions: Breadcrumbs
-      **/
+      /** ================================================================== **/
+      /**  BREADCRUMBS                                                       **/
 
       /**
        * Create the breadcrumbs.
@@ -593,34 +598,8 @@
         }
       },
 
-      /**
-       * Apply given colors on chosen series.
-       *
-       * @param {!required} colors {Array} List of colors to apply on series. Follow the format [[__SERIE_ID__, __COLOR __], ...].
-       *
-       * @method setColors
-       */
-      setColors: function(colors) {
-        // Return the serie index.
-        function _get_serie_index_(serie_id, existing_series_id) {
-          for (var i = 1; i < existing_series_id.length; i++) {
-            if (serie_id === existing_series_id[i]) return i - 1;
-          }
-          return -1;
-        }
-        var series = {};
-        for (var i = 0; i < colors.length; i++) {
-          var index = _get_serie_index_(colors[i][0], this.$.chart.data[0]);
-          if (index !== -1) series[index] = {
-            "color": colors[i][1]
-          };
-        }
-        this.set('chartOptions.series', series);
-      },
-
-      /** ----------------------------------------------------------------------
-      // MARK: Functions : DOM events
-      **/
+      /** ================================================================== **/
+      /**  DOM LISTENERS                                                     **/
 
       /**
        * On `apply` button click. Load the datas form the trace according to the chart settings.
@@ -708,14 +687,13 @@
         }
       },
 
-      /** ----------------------------------------------------------------------
-      // MARK: Functions : Loading
-      **/
+      /** ================================================================== **/
+      /**  LOADING                                                           **/
 
       /**
        * Init the loading status (DOM changes and event fire).
        *
-       * @method _setChart
+       * @method _initLoadingStatus
        */
       _initLoadingStatus: function() {
         // Display the spinner
@@ -728,6 +706,11 @@
         this.fire('loading-sparql-query');
       },
 
+      /**
+       * Init the loading status (DOM changes and event fire).
+       *
+       * @method _endLoadingStatus
+       */
       _endLoadingStatus: function() {
         // Display the spinner
         this.$.spinner.active = false;
@@ -738,6 +721,32 @@
         this.set('isLoading', false);
       },
 
+      /** ================================================================== **/
+      /**  REQUEST                                                           **/
+
+      /**
+       * _createRequest :
+       *    Duration   : t/f
+       *    Offsprings : t/f
+       *
+       * _processRequestResults :
+       *    Offsprings :
+       *        _processRequestResultsForOffsprings
+       *        _orderStackedDatas( _getSumOffspringsDatas )
+       *        _setColors
+       *        _setChartsTitle
+       *        _fillCharts
+       *    !Offsprings :
+       *        _orderStackedDatas( _getStackedData );
+       *        Duration :
+       *            _fillChart( _applyDurationDisplay )
+       *        !Duration :
+       *            _fillChart
+       *            Reset vAxis to default
+       *    _endLoadingStatus
+       *
+      **/
+
       /**
        * Returns a sparql queries corresponding of the union of the counts of each obsel type in every interval of the trace.
        *
@@ -746,8 +755,11 @@
        * @method _createRequest
        */
       _createRequest: function(period) {
-        // We define the request main properties.
-        var type_sub_request = (this._groupByIndex === 0 || this._groupByIndex === -1) ? "  ?o a ?type.\n" : "  ?o m:" + this._attributesList[this._groupByIndex - 1] + " ?type.\n";
+        // Either we request on the type of obsel or the attributes.
+        var type_sub_request = (this._groupByIndex === 0 || this._groupByIndex === -1)
+                               ? "  ?o a ?type.\n"
+                               : "  ?o m:" + this._attributesList[this._groupByIndex - 1] + " ?type.\n";
+        // If there are offsprings to fill ( basically more groups in the request)
         var constraint_sub_request = "";
         var offspring_var = "";
         if (this.offsprings.length > 0) {
@@ -759,17 +771,24 @@
           constraint_sub_request += "}\n";
           constraint_sub_request += "  ?o m:" + this.constraint + " ?ofs.\n";
         }
+        // If we request on the duration of obsels instead of the count.
+        var duration_suffix = (this.$.durationCheck.checked) ? "BIND(?e-?b AS ?duration)\n" : "";
+        var duration_prefix = (this.$.durationCheck.checked) ? "(SUM(?duration) as ?numMatches)" : "(COUNT(?o) as ?numMatches)";
+        // The request "prefix" (i.e. the part before the intervals array)
         var request_prefix =
           "PREFIX : <http://liris.cnrs.fr/silex/2009/ktbs#>\n" +
           "PREFIX m: <" + this.trace.model_uri + "#>\n" +
-          "SELECT " + offspring_var + " ?rangeId (COUNT(?o) as ?numMatches) ?type WHERE{\n" +
+          "SELECT " + offspring_var + " ?rangeId "+duration_prefix+" ?type WHERE{\n" +
           "  values (?rangeId ?min ?max) {";
+        // THe request suffix
         var request_suffix =
           "  }\n" +
           type_sub_request +
           constraint_sub_request +
           "  ?o :hasBegin ?b.\n" +
-          "  FILTER(?min <= ?b && ?b < ?max)\n" +
+          "  ?o :hasEnd ?e.\n" +
+          "  FILTER(?min <= ?e && ?e < ?max)\n" +
+          duration_suffix +
           "}GROUP BY " + offspring_var + " ?rangeId ?type\n" +
           "ORDER BY " + offspring_var + " ?rangeId\n";
         // This function returns a part of the request where we count types between two temporal bounds.
@@ -811,10 +830,16 @@
         this.set('_timeline_interval_count', intervalCount);
         request += request_suffix;
 
-        console.log(request);
         return request;
       },
 
+      /**
+       * Process the query results.
+       *
+       * @param {!required} rd {Array} The raw datas.
+       *
+       * @method _processRequestResults
+       */
       _processRequestResults: function(rd) {
         // If the `taaabs-trace-histogram` is a simple histogram, we just fill the chart.
         // Otherwise, we fill each offspring
@@ -825,34 +850,89 @@
           this._setChartsTitle();
           this._fillCharts();
         } else {
-          this._fillChart(this._orderStackedDatas(this._getStackedData(rd)));
+          var osd = this._orderStackedDatas(this._getStackedData(rd));
+          if(this.$.durationCheck.checked){
+            this._fillChart(this._applyDurationDisplay(osd));
+            this._setTicks();
+          }
+          else{
+            this._fillChart(osd);
+            if( this.chartOptions.vAxis ) this.chartOptions.vAxis.ticks = undefined;
+          }
         }
         this._endLoadingStatus();
       },
 
+
+      _applyDurationDisplay: function(osd){
+        var result = [];
+        // Push the categories
+        result.push([osd[0][0]]);
+        for(var i = 1; i < osd[0].length; i++){
+          result[0].push(osd[0][i]);
+          result[0].push({ role: 'tooltip' });
+        }
+        // Push the values and their tooltip
+        for(var i = 1; i < osd.length; i++){
+          result.push([osd[i][0]]);
+          for(var j = 1; j< osd[i].length; j++ ){
+            result[i].push(osd[i][j]);
+            result[i].push(this._ttu.get_human_rounded_duration(osd[i][j]));
+          }
+        }
+        // Return reulst
+        return result;
+      },
+
+      _setTicks: function(target){
+        target = target || this;
+        // Apply ticks display.
+        var ticks = this._ttu.get_human_rounded_ticks(this._maxValue, 5);
+        if( target.chartOptions.vAxis ) target.chartOptions.vAxis.ticks = ticks;
+        else                            target.chartOptions.vAxis = {'ticks': ticks};
+      },
+
+      /** ================================================================== **/
+      /**  OFFSPRING PROCESS                                                 **/
+
+      /**
+       * Sum the offsprings values to display in the main one.
+       *
+       * @method _getSumOffspringsDatas
+       */
       _getSumOffspringsDatas: function() {
+        // The result Array
         var sd = [
           ['interval']
         ];
+        // The raw datas Arrays
         var od = this._offspringsDatas;
         var i, j, k, l, exists;
         var s = 0;
+        // Some offsprings might have no datas, so we have to skip them.
         while (od[s] === null || od[s] === undefined) {
           s++;
         }
+        // We push the categories names in the first line of the stacked datas.
         for (j = 1; j < od[s][0].length; j++) {
           sd[0].push(od[s][0][j]);
         }
+        // Then we push the values In the stacked datas for the first serie.
         for (j = 1; j < od[s].length; j++) {
           sd.push([od[s][j][0]]);
           for (k = 1; k < od[s][j].length; k++) {
             sd[j].push((od[s][j][k] === null) ? 0 : od[s][j][k]);
           }
         }
+        // Now, we fille the stacked datas for the rest of the series.
         for (i = s + 1; i < od.length; i++) {
+          // Some offsprings still might have no data.
           if(od[i] !== null && od[i] !== undefined){
             // Check the titles
             var map = [null];
+            // We look for the current category in the already registered ones (sd[0]).
+            // If the category already exists (sd[0][k === od[i][0][j]]), we push it's position in 'map'
+            // Otherwise, we add the category in sd[0]
             for (j = 1; j < od[i][0].length; j++) {
               exists = false;
               for (k = 0; k < sd[0].length; k++) {
@@ -870,6 +950,7 @@
                 map.push(sd[0].length - 1);
               }
             }
+            // We add the current offspring value to the existing one.
             for (j = 1; j < od[i].length; j++) {
               for (k = 1; k < od[i][j].length; k++) {
                 sd[j][map[k]] = sd[j][map[k]] + ((od[i][j][k] === null) ? 0 : od[i][j][k]);
@@ -880,13 +961,16 @@
         return sd;
       },
 
+      /**
+       * Stack the raw datas for each offspring.
+       *
+       * @method _processRequestResultsForOffsprings
+       */
       _processRequestResultsForOffsprings: function(rd) {
         var rd_index = 0;
         var data = [];
         var o_current = "";
         var o_index = 0;
-
-        this.set('_mainDatas', []);
 
         // The stacked_datas. The last one element is for the root histo.
         var stacked_datas_per_offspring = new Array(this.offsprings.length);
@@ -921,8 +1005,17 @@
           }
           rd_index++;
         }
+
+        // If duration is checked
+        if(this.$.durationCheck.checked){
+          for(var i = 0; i < stacked_datas_per_offspring.length; i++){
+            stacked_datas_per_offspring[i] = this._applyDurationDisplay(stacked_datas_per_offspring[i]);
+          }
+        }
+
         this.set('_offspringsDatas', stacked_datas_per_offspring);
       },
+
 
       _fillCharts: function() {
         for (var i = 0; i < this.offsprings.length; i++) {
@@ -931,6 +1024,9 @@
           } else {
             this.offsprings[i][1].setData(this._offspringsDatas[i]);
             this.offsprings[i][1].setMaxValue(this._maxValue);
+            if(this.$.durationCheck.checked){
+              this._setTicks(this.offsprings[i][1]);
+            }
           }
         }
         this.$.chart.set('data', this._offspringsDatas[i]);
@@ -1024,7 +1120,9 @@
       _orderStackedDatas: function(sd) {
         var nsd = [];
         var title = sd[0].slice(1);
+
         title.sort();
+
         var map = [];
         for (var i = 0; i < title.length; i++) {
           for (var j = 1; j < sd[0].length; j++) {
@@ -1041,6 +1139,7 @@
             nsd[i].push(sd[i][map[j]]);
           }
         }
+        console.log(nsd);
         return nsd;
       },
 
@@ -1095,11 +1194,13 @@
               if (type === stacked_datas[0][j]) {
                 sum += Number(raw_datas[i].numMatches.value);
                 _data_stacked_temp_[j] = Number(raw_datas[i].numMatches.value);
+
                 exists = true;
               }
             }
             if (!exists) {
               stacked_datas[0].push(type);
+
               for (j = 1; j < stacked_datas.length; j++) {
                 if (stacked_datas[j].length < stacked_datas[0].length) {
                   stacked_datas[j].push(null);

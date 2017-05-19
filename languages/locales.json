@@ -4,6 +4,8 @@
       "offset": "Offset",
       "customPeriodNumber": "Custom period number",
       "normalize": "Normalize",
+      "duration": "Duration",
+      "duration-title": "Display sum of obsels durations instead of counting obsels.",
       "apply": "Apply",
       "exportcsv": "Export CSV",
       "groupBy": "Group by"
@@ -13,6 +15,8 @@
       "offset": "Décalage",
       "customPeriodNumber": "Nombre d'intervales",
       "normalize": "Normer",
+      "duration": "Durée",
+      "duration-title": "Afficher la durée totale des obsels au lieu de leur nombre.",
       "apply": "Appliquer",
       "exportcsv": "Exporter en CSV",
       "groupBy": "Grouper par"
