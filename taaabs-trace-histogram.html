@@ -630,12 +630,11 @@
       /**
        * On 'hideLegend' checkbox click. Hide or not the legend of the chart.
        *
-       * @method _onHideLegendClick
+       * @method _onExportCSVClick
        */
       _onExportCSVClick: function() {
         var data = this.$.chart.data;
         var csvContent = "data:text/csv;charset=utf-8,";
-        console.log( data);
         for(var j = 0 ; j < data.length; j++){
           dataString = "";
           var i = 0;
@@ -644,11 +643,11 @@
               dataString += ',';
             }
             else{
-              dataString += (data[j][i].indexOf && data[j][i].indexOf(',') !== -1) ? '"'+data[j][i]+'",' : data[j][i]+',';
+              dataString += (data[j][i].indexOf && ( data[j][i].indexOf(',') !== -1 || data[j][i].indexOf('\n') !== -1)) ? '"'+data[j][i]+'",' : data[j][i]+',';
             }
           }
           if(data[j][i] !== null && data[j][i] !== undefined){
-            dataString += (data[j][i].indexOf && data[j][i].indexOf(',') !== -1) ? '"'+data[j][i]+'",' : data[j][i]+',';
+            dataString += (data[j][i].indexOf && (data[j][i].indexOf(',') !== -1 || data[j][i].indexOf('\n') !== -1)) ? '"'+data[j][i]+'"' : data[j][i];
           }
           csvContent += j < data.length ? dataString + "\n" : dataString;
         }
