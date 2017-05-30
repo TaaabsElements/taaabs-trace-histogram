@@ -133,7 +133,7 @@
             <paper-listbox class="dropdown-content" selected="{{_groupByIndex}}">
               <paper-item value="-group-by-type-">-group-by-type-</paper-item>
               <template is="dom-repeat" items="{{_attributesList}}">
-                <paper-item value="{{item}}">{{item}}</paper-item>
+                <paper-item value="{{item}}">{{item.name}}</paper-item>
               </template>
   </paper-listbox>
   </paper-dropdown-menu>
@@ -226,6 +226,18 @@
           type: Object,
           notify: true,
           value: null
+        },
+
+        /**
+         * The trace model.
+         *
+         * @attribute model
+         * @type Object
+         */
+        model: {
+         type: Object,
+         notify: true,
+         value: null
         },
 
         /**
@@ -759,6 +771,32 @@
        *
       **/
 
+      _getOffspringSubRequest: function(value, datatype){
+        var borderDQ = /^".*"$/;
+        // If the value is a string.
+        if(datatype === ""){
+          if(borderDQ.test(value)){
+            value = value.substr(1, value.length - 2);
+          }
+          function getUni(char){
+            var code = char.charCodeAt(0).toString(16);
+            var res = code;
+            for(var i = code.length; i < 4; i++){
+              res = '0'+res;
+            }
+            res = '\\'+'u'+res;
+            return res;
+          }
+          value = value.replace(/\W/g, getUni);
+          return '("'+value+'")';
+        }
+        // If the value is anything else
+        // TODO Check if we need any specific operation for any other type than string.
+        else{
+          return '("'+value+'"'+datatype+')';
+        }
+      },
+
       /**
        * Returns a sparql queries corresponding of the union of the counts of each obsel type in every interval of the trace.
        *
@@ -770,18 +808,21 @@
         // Either we request on the type of obsel or the attributes.
         var type_sub_request = (this._groupByIndex === 0 || this._groupByIndex === -1)
                                ? "  ?o a ?type.\n"
-                               : "  ?o m:" + this._attributesList[this._groupByIndex - 1] + " ?type.\n";
+                               : "  ?o m:" + this._attributesList[this._groupByIndex - 1].name + " ?type.\n";
         // If there are offsprings to fill ( basically more groups in the request)
         var constraint_sub_request = "";
         var offspring_var = "";
+        var datatype = (this.constraint.datatype === "xsd:string") ? "" : "^^"+this.constraint.datatype;
+
         if (this.offsprings.length > 0) {
           offspring_var = "?ofs";
           constraint_sub_request = "  values (?ofs){";
+
           for (var i = 0; i < this.offsprings.length; i++) {
-            constraint_sub_request += "(" + this.offsprings[i][0] + ")";
+            constraint_sub_request += this._getOffspringSubRequest(this.offsprings[i][0], datatype);
           }
           constraint_sub_request += "}\n";
-          constraint_sub_request += "  ?o m:" + this.constraint + " ?ofs.\n";
+          constraint_sub_request += "  ?o m:" + this.constraint.name + " ?ofs.\n";
         }
         // If we request on the duration of obsels instead of the count.
         var duration_suffix = (this.$.durationCheck.checked) ? "BIND(?e-?b AS ?duration)\n" : "";
@@ -790,6 +831,7 @@
         var request_prefix =
           "PREFIX : <http://liris.cnrs.fr/silex/2009/ktbs#>\n" +
           "PREFIX m: <" + this.trace.model_uri + "#>\n" +
+          "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n"+
           "SELECT " + offspring_var + " ?rangeId "+duration_prefix+" ?type WHERE{\n" +
           "  values (?rangeId ?min ?max) {";
         // THe request suffix
@@ -1255,7 +1297,7 @@
 
       _setChartTitle: function(i) {
         var p = this._periodMapping[this._periodIndex];
-        var t = (this._groupByIndex === 0 || this._groupByIndex === -1) ? "obsel type" : this._attributesList[this._groupByIndex - 1];
+        var t = (this._groupByIndex === 0 || this._groupByIndex === -1) ? "obsel type" : this._attributesList[this._groupByIndex - 1].name;
         var title = "Obsels distribution per " + p + " & per " + t;
         if (i !== null && i !== undefined) {
           title += " & " + this.constraint + " = " + this.offsprings[i][0];
